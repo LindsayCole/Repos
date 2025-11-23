@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Home, Users, FileText, LogOut } from 'lucide-react';
+import { Home, Users, FileText, LogOut, Target } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -27,6 +27,7 @@ export default function Navigation() {
     // Define navigation items with role requirements
     const allNavItems = [
         { href: '/dashboard', label: UI_TEXT.NAV_DASHBOARD, icon: Home, roles: ['HR', 'MANAGER', 'EMPLOYEE'] },
+        { href: '/goals', label: 'Goals', icon: Target, roles: ['HR', 'MANAGER', 'EMPLOYEE'] },
         { href: '/team', label: UI_TEXT.NAV_MY_TEAM, icon: Users, roles: ['MANAGER'] },
         { href: '/builder', label: UI_TEXT.NAV_FORMS, icon: FileText, roles: ['HR'] },
     ];

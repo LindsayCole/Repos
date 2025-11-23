@@ -19,12 +19,50 @@ model User {
   managerId     String?
   manager       User?               @relation("ManagerEmployees", fields: [managerId], references: [id])
   employees     User[]              @relation("ManagerEmployees")
-  
+
   reviewsAsEmployee PerformanceReview[] @relation("EmployeeReviews")
   reviewsAsManager  PerformanceReview[] @relation("ManagerReviews")
   createdTemplates  FormTemplate[]
+  goalsOwned        Goal[]              @relation("EmployeeGoals")
+  goalsManaged      Goal[]              @relation("ManagerGoals")
+  goalUpdates       GoalUpdate[]
   accounts      Account[]
   sessions      Session[]
+}
+
+model Goal {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  status          String      @default("NOT_STARTED") // "NOT_STARTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"
+  progress        Int         @default(0) // 0-100 percentage
+  targetDate      DateTime?
+  completionDate  DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userId          String
+  user            User        @relation("EmployeeGoals", fields: [userId], references: [id], onDelete: Cascade)
+  managerId       String?
+  manager         User?       @relation("ManagerGoals", fields: [managerId], references: [id])
+  updates         GoalUpdate[]
+
+  @@index([userId])
+  @@index([managerId])
+  @@index([status])
+}
+
+model GoalUpdate {
+  id          String   @id @default(cuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  oldProgress Int
+  newProgress Int
+  note        String?
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@index([goalId])
 }
 
 model FormTemplate {
@@ -37,6 +75,7 @@ model FormTemplate {
   createdBy   User          @relation(fields: [createdById], references: [id])
   sections    FormSection[]
   reviews     PerformanceReview[]
+  cycles      ReviewCycle[]
 }
 
 model FormSection {
@@ -67,11 +106,39 @@ model PerformanceReview {
   employee     User             @relation("EmployeeReviews", fields: [employeeId], references: [id])
   managerId    String
   manager      User             @relation("ManagerReviews", fields: [managerId], references: [id])
+  cycleId      String?
+  cycle        ReviewCycle?     @relation(fields: [cycleId], references: [id])
   status       String           // "PENDING_EMPLOYEE", "PENDING_MANAGER", "COMPLETED"
   overallScore Float?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   responses    ReviewResponse[]
+
+  @@index([employeeId])
+  @@index([managerId])
+  @@index([cycleId])
+  @@index([status])
+}
+
+model ReviewCycle {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?
+  frequency       String           // "ANNUAL", "SEMI_ANNUAL", "QUARTERLY", "MONTHLY"
+  startDate       DateTime
+  nextRunDate     DateTime?
+  lastRunDate     DateTime?
+  templateId      String
+  template        FormTemplate     @relation(fields: [templateId], references: [id])
+  isActive        Boolean          @default(true)
+  departments     String?          // JSON string of department names
+  includeAllUsers Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  reviews         PerformanceReview[]
+
+  @@index([isActive])
+  @@index([nextRunDate])
 }
 
 model ReviewResponse {

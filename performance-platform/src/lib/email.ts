@@ -53,3 +53,19 @@ export const reviewCompletedEmail = (employeeName: string, managerName: string, 
     subject: `Performance Review Completed for ${employeeName}`,
     html: `<p>Hi ${employeeName} and ${managerName},</p><p>The performance review "${reviewTitle}" for ${employeeName} has been completed by ${managerName}.</p>`,
 });
+
+// Goal Email Templates
+export const goalCreatedEmail = (employeeName: string, managerName: string, goalTitle: string) => ({
+    subject: `New Goal Created: ${goalTitle}`,
+    html: `<p>Hi ${managerName},</p><p>${employeeName} has created a new goal: "${goalTitle}". You can track their progress in the Performance Platform.</p>`,
+});
+
+export const goalCompletedEmail = (employeeName: string, managerName: string, goalTitle: string) => ({
+    subject: `Goal Completed: ${goalTitle}`,
+    html: `<p>Hi ${employeeName} and ${managerName},</p><p>Congratulations! The goal "${goalTitle}" has been marked as completed. Great work!</p>`,
+});
+
+export const goalMilestoneEmail = (employeeName: string, managerName: string, goalTitle: string, milestone: number) => ({
+    subject: `Goal Milestone Reached: ${milestone}% - ${goalTitle}`,
+    html: `<p>Hi ${managerName},</p><p>${employeeName} has reached ${milestone}% progress on their goal: "${goalTitle}". Keep up the great work!</p>`,
+});

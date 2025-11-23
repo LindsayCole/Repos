@@ -7,8 +7,10 @@ import Link from 'next/link';
 import CreateReviewButton from '@/components/dashboard/CreateReviewButton';
 import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import ReviewTaskCard from '@/components/dashboard/ReviewTaskCard';
+import GoalCard from '@/components/goals/GoalCard';
 import { UI_TEXT } from '@/lib/constants';
 import { ReviewTask } from '@/types';
+import { Target, Plus } from 'lucide-react';
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
@@ -39,6 +41,19 @@ export default async function DashboardPage() {
     const template = await prisma.formTemplate.findFirst();
     const employee = await prisma.user.findFirst({ where: { role: 'EMPLOYEE' } });
     const manager = await prisma.user.findFirst({ where: { role: 'MANAGER' } });
+
+    // Fetch active goals for the user
+    const activeGoals = await prisma.goal.findMany({
+        where: {
+            userId: user.id,
+            status: { in: ['NOT_STARTED', 'IN_PROGRESS'] },
+        },
+        include: {
+            manager: true,
+        },
+        orderBy: { targetDate: 'asc' },
+        take: 3,
+    });
 
     return (
         <div className="space-y-8">
@@ -97,6 +112,41 @@ export default async function DashboardPage() {
                     <PerformanceChart userId={user.id} />
                 </div>
             </div>
+
+            {/* Active Goals Section */}
+            <Card className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-cyan-500/10 rounded-lg">
+                            <Target className="w-5 h-5 text-cyan-400" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-white">Active Goals</h2>
+                    </div>
+                    <Link href="/goals">
+                        <Button variant="outline" className="gap-2">
+                            View All Goals
+                        </Button>
+                    </Link>
+                </div>
+
+                {activeGoals.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-slate-800 rounded-xl">
+                        <p className="text-slate-500 mb-4">No active goals yet</p>
+                        <Link href="/goals/new">
+                            <Button className="gap-2">
+                                <Plus className="w-4 h-4" />
+                                Create Your First Goal
+                            </Button>
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        {activeGoals.map((goal) => (
+                            <GoalCard key={goal.id} goal={goal} />
+                        ))}
+                    </div>
+                )}
+            </Card>
         </div>
     );
 }
