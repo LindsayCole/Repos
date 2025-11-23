@@ -1,11 +1,10 @@
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { UI_TEXT } from '@/lib/constants';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { TemplateCard } from '@/components/builder/TemplateCard';
+import { BuilderPageClient } from '@/components/builder/BuilderPageClient';
 
 export default async function BuilderPage() {
     const user = await getCurrentUser();
@@ -26,17 +25,7 @@ export default async function BuilderPage() {
                 </Link>
             </div>
 
-            {templates.length === 0 ? (
-                <Card>
-                    <p className="text-slate-400 text-center py-8">{UI_TEXT.NO_TEMPLATES}</p>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {templates.map(template => (
-                        <TemplateCard key={template.id} template={template} />
-                    ))}
-                </div>
-            )}
+            <BuilderPageClient templates={templates} />
         </div>
     );
 }

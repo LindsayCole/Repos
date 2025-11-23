@@ -7,7 +7,60 @@ import { ReviewFormData } from '@/types';
 import { sendEmail, reviewAssignedEmail, selfEvalSubmittedEmail, reviewCompletedEmail } from '@/lib/email';
 import { ERRORS, SUCCESS_MESSAGES } from '@/lib/constants';
 
-export async function createReviewCycle(templateId: string, employeeId: string, managerId: string) {
+export async function saveDraftReview(reviewId: string, responses: ReviewFormData) {
+    try {
+        if (!reviewId) {
+            throw new Error(ERRORS.REVIEW_ID_REQUIRED);
+        }
+
+        // Upsert all responses
+        const promises = Object.entries(responses).map(async ([questionId, data]) => {
+            const existingResponse = await prisma.reviewResponse.findFirst({
+                where: { reviewId, questionId }
+            });
+
+            if (existingResponse) {
+                return prisma.reviewResponse.update({
+                    where: { id: existingResponse.id },
+                    data: {
+                        selfRating: data.rating,
+                        selfComment: data.comment,
+                    }
+                });
+            } else {
+                return prisma.reviewResponse.create({
+                    data: {
+                        reviewId,
+                        questionId,
+                        selfRating: data.rating,
+                        selfComment: data.comment,
+                    }
+                });
+            }
+        });
+
+        await Promise.all(promises);
+
+        // Update review updatedAt timestamp (keep status and isDraft unchanged)
+        await prisma.performanceReview.update({
+            where: { id: reviewId },
+            data: { updatedAt: new Date() }
+        });
+
+        revalidatePath('/reviews/' + reviewId);
+        return { success: true, message: 'Draft saved successfully' };
+    } catch (error) {
+        console.error('Error saving draft review:', error);
+        throw new Error('Failed to save draft');
+    }
+}
+
+export async function createReviewCycle(
+    templateId: string,
+    employeeId: string,
+    managerId: string,
+    dueDate?: Date
+) {
     try {
         const review = await prisma.performanceReview.create({
             data: {
@@ -15,6 +68,7 @@ export async function createReviewCycle(templateId: string, employeeId: string, 
                 employeeId,
                 managerId,
                 status: 'PENDING_EMPLOYEE',
+                dueDate: dueDate || null,
             },
             include: {
                 employee: true,
@@ -41,24 +95,42 @@ export async function submitEmployeeReview(reviewId: string, responses: ReviewFo
             throw new Error(ERRORS.REVIEW_ID_REQUIRED);
         }
 
-        // Save all responses
-        const promises = Object.entries(responses).map(([questionId, data]) => {
-            return prisma.reviewResponse.create({
-                data: {
-                    reviewId,
-                    questionId,
-                    selfRating: data.rating,
-                    selfComment: data.comment,
-                }
+        // Upsert all responses
+        const promises = Object.entries(responses).map(async ([questionId, data]) => {
+            const existingResponse = await prisma.reviewResponse.findFirst({
+                where: { reviewId, questionId }
             });
+
+            if (existingResponse) {
+                return prisma.reviewResponse.update({
+                    where: { id: existingResponse.id },
+                    data: {
+                        selfRating: data.rating,
+                        selfComment: data.comment,
+                    }
+                });
+            } else {
+                return prisma.reviewResponse.create({
+                    data: {
+                        reviewId,
+                        questionId,
+                        selfRating: data.rating,
+                        selfComment: data.comment,
+                    }
+                });
+            }
         });
 
         await Promise.all(promises);
 
-        // Update review status
+        // Update review status and mark as submitted
         const review = await prisma.performanceReview.update({
             where: { id: reviewId },
-            data: { status: 'PENDING_MANAGER' },
+            data: {
+                status: 'PENDING_MANAGER',
+                isDraft: false,
+                employeeSubmittedAt: new Date()
+            },
             include: {
                 employee: true,
                 manager: true,
@@ -130,7 +202,9 @@ export async function submitManagerReview(reviewId: string, responses: ReviewFor
             where: { id: reviewId },
             data: {
                 status: 'COMPLETED',
-                overallScore
+                overallScore,
+                isDraft: false,
+                managerSubmittedAt: new Date()
             },
             include: {
                 employee: true,

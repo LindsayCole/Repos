@@ -1,6 +1,6 @@
 // TypeScript type definitions for the application
 
-import { User as PrismaUser, FormTemplate, FormSection, FormQuestion, PerformanceReview, ReviewResponse } from '@prisma/client';
+import { User as PrismaUser, FormTemplate, FormSection, FormQuestion, PerformanceReview, ReviewResponse, ReviewCycle } from '@prisma/client';
 
 export type User = PrismaUser;
 
@@ -22,6 +22,13 @@ export type ReviewWithDetails = PerformanceReview & {
 export type ReviewTask = PerformanceReview & {
     template: FormTemplate;
     employee?: User;
+    dueDate?: Date | string | null;
+    responses?: ReviewResponse[];
+    cycle?: {
+        id: string;
+        name: string;
+        dueDate: Date;
+    } | null;
 };
 
 export interface PerformanceMetric {

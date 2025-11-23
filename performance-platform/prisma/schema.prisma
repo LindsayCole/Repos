@@ -19,12 +19,20 @@ model User {
   managerId     String?
   manager       User?               @relation("ManagerEmployees", fields: [managerId], references: [id])
   employees     User[]              @relation("ManagerEmployees")
-  
+
+  // BambooHR-compatible fields
+  employeeId    String?   @unique  // External employee ID for HRIS sync
+  startDate     DateTime?           // Employee start date
+  position      String?             // Job title/position
+  location      String?             // Office location
+
   reviewsAsEmployee PerformanceReview[] @relation("EmployeeReviews")
   reviewsAsManager  PerformanceReview[] @relation("ManagerReviews")
   createdTemplates  FormTemplate[]
-  accounts      Account[]
-  sessions      Session[]
+  createdCycles     ReviewCycle[]
+  notifications     Notification[]
+  accounts          Account[]
+  sessions          Session[]
 }
 
 model FormTemplate {
@@ -59,19 +67,40 @@ model FormQuestion {
   responses       ReviewResponse[]
 }
 
+model ReviewCycle {
+  id          String              @id @default(cuid())
+  name        String              // "Q1 2025", "Annual 2024"
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  dueDate     DateTime            // When reviews should be completed by
+  status      String              // "DRAFT", "ACTIVE", "COMPLETED"
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  reviews     PerformanceReview[]
+}
+
 model PerformanceReview {
-  id           String           @id @default(cuid())
-  templateId   String
-  template     FormTemplate     @relation(fields: [templateId], references: [id])
-  employeeId   String
-  employee     User             @relation("EmployeeReviews", fields: [employeeId], references: [id])
-  managerId    String
-  manager      User             @relation("ManagerReviews", fields: [managerId], references: [id])
-  status       String           // "PENDING_EMPLOYEE", "PENDING_MANAGER", "COMPLETED"
-  overallScore Float?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  responses    ReviewResponse[]
+  id                   String           @id @default(cuid())
+  templateId           String
+  template             FormTemplate     @relation(fields: [templateId], references: [id])
+  employeeId           String
+  employee             User             @relation("EmployeeReviews", fields: [employeeId], references: [id])
+  managerId            String
+  manager              User             @relation("ManagerReviews", fields: [managerId], references: [id])
+  cycleId              String?
+  cycle                ReviewCycle?     @relation(fields: [cycleId], references: [id])
+  status               String           // "PENDING_EMPLOYEE", "PENDING_MANAGER", "COMPLETED"
+  overallScore         Float?
+  dueDate              DateTime?        // Individual review due date
+  isDraft              Boolean          @default(true)  // Track if review is in draft state
+  employeeSubmittedAt  DateTime?        // When employee submitted
+  managerSubmittedAt   DateTime?        // When manager completed
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  responses            ReviewResponse[]
 }
 
 model ReviewResponse {
@@ -84,6 +113,18 @@ model ReviewResponse {
   selfComment    String?
   managerRating  Int?              // 1-4 scale
   managerComment String?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "REVIEW_ASSIGNED", "REVIEW_DUE_SOON", "REVIEW_SUBMITTED"
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model Account {

@@ -1,12 +1,13 @@
 'use client';
 
-import { submitEmployeeReview, submitManagerReview } from '@/app/actions/reviews';
+import { submitEmployeeReview, submitManagerReview, saveDraftReview } from '@/app/actions/reviews';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/lib/toast';
 import { SUCCESS_MESSAGES } from '@/lib/constants';
+import { formatDistanceToNow } from 'date-fns';
 
 type Props = {
     review: any;
@@ -17,6 +18,10 @@ type Props = {
 export default function ReviewForm({ review, mode, user }: Props) {
     const [responses, setResponses] = useState<Record<string, { rating: number, comment: string }>>({});
     const [submitting, setSubmitting] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const toast = useToast();
 
     // Initialize responses from existing data if any
@@ -52,6 +57,7 @@ export default function ReviewForm({ review, mode, user }: Props) {
             ...prev,
             [questionId]: { ...prev[questionId], rating }
         }));
+        setHasUnsavedChanges(true);
     };
 
     const handleCommentChange = (questionId: string, comment: string) => {
@@ -59,10 +65,64 @@ export default function ReviewForm({ review, mode, user }: Props) {
             ...prev,
             [questionId]: { ...prev[questionId], comment }
         }));
+        setHasUnsavedChanges(true);
     };
+
+    const saveDraft = async () => {
+        if (Object.keys(responses).length === 0) return;
+
+        setIsSaving(true);
+        try {
+            await saveDraftReview(review.id, responses);
+            setLastSaved(new Date());
+            setHasUnsavedChanges(false);
+            toast.success('Draft saved successfully');
+        } catch (error) {
+            console.error(error);
+            toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Auto-save every 30 seconds
+    useEffect(() => {
+        if (mode === 'VIEW') return;
+
+        autoSaveTimerRef.current = setInterval(() => {
+            if (hasUnsavedChanges && Object.keys(responses).length > 0) {
+                saveDraft();
+            }
+        }, 30000); // 30 seconds
+
+        return () => {
+            if (autoSaveTimerRef.current) {
+                clearInterval(autoSaveTimerRef.current);
+            }
+        };
+    }, [hasUnsavedChanges, responses, mode]);
+
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        if (mode === 'VIEW') return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [hasUnsavedChanges, mode]);
 
     const handleSubmit = async () => {
         setSubmitting(true);
+        setHasUnsavedChanges(false);
         try {
             if (mode === 'EMPLOYEE') {
                 await submitEmployeeReview(review.id, responses);
@@ -86,7 +146,7 @@ export default function ReviewForm({ review, mode, user }: Props) {
     ];
 
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-8 pb-32">
             {review.template.sections.map((section: any) => {
                 // Filter questions based on user role
                 const visibleQuestions = section.questions.filter(shouldShowQuestion);
@@ -170,15 +230,35 @@ export default function ReviewForm({ review, mode, user }: Props) {
             })}
 
             {mode !== 'VIEW' && (
-                <div className="fixed bottom-8 right-8 z-50">
-                    <Button
-                        size="lg"
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                        className="shadow-2xl shadow-cyan-500/20"
-                    >
-                        {submitting ? 'Submitting...' : 'Submit Review'}
-                    </Button>
+                <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 backdrop-blur-sm z-50">
+                    <div className="max-w-4xl mx-auto px-8 py-4">
+                        <div className="flex justify-between items-center">
+                            <div className="text-sm text-slate-500">
+                                {isSaving && 'Saving...'}
+                                {!isSaving && lastSaved && `Last saved: ${formatDistanceToNow(lastSaved)} ago`}
+                                {!isSaving && !lastSaved && hasUnsavedChanges && 'Unsaved changes'}
+                            </div>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="secondary"
+                                    onClick={saveDraft}
+                                    disabled={isSaving || submitting}
+                                    size="lg"
+                                >
+                                    {isSaving ? 'Saving...' : 'Save Draft'}
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleSubmit}
+                                    disabled={submitting || isSaving}
+                                    size="lg"
+                                    className="shadow-2xl shadow-cyan-500/20"
+                                >
+                                    {submitting ? 'Submitting...' : (mode === 'EMPLOYEE' ? 'Submit Self-Evaluation' : 'Complete Review')}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

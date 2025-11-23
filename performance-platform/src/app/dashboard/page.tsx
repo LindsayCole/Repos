@@ -1,12 +1,10 @@
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import CreateReviewButton from '@/components/dashboard/CreateReviewButton';
 import PerformanceChart from '@/components/dashboard/PerformanceChart';
-import ReviewTaskCard from '@/components/dashboard/ReviewTaskCard';
+import { DashboardPageClient } from '@/components/dashboard/DashboardPageClient';
 import { UI_TEXT } from '@/lib/constants';
 import { ReviewTask } from '@/types';
 
@@ -23,7 +21,17 @@ export default async function DashboardPage() {
             employeeId: user.id,
             status: 'PENDING_EMPLOYEE',
         },
-        include: { template: true }
+        include: {
+            template: true,
+            responses: true,
+            cycle: {
+                select: {
+                    id: true,
+                    name: true,
+                    dueDate: true,
+                }
+            }
+        }
     });
 
     // Fetch pending reviews for manager
@@ -32,8 +40,22 @@ export default async function DashboardPage() {
             managerId: user.id,
             status: 'PENDING_MANAGER',
         },
-        include: { employee: true, template: true }
+        include: {
+            employee: true,
+            template: true,
+            responses: true,
+            cycle: {
+                select: {
+                    id: true,
+                    name: true,
+                    dueDate: true,
+                }
+            }
+        }
     });
+
+    // Combine all pending reviews
+    const allPendingReviews = [...myReviews, ...teamReviews] as ReviewTask[];
 
     // Fetch completed reviews for the user to get latest score
     const completedReviews = await prisma.performanceReview.findMany({
@@ -92,23 +114,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-2 space-y-6">
-                    <h2 className="text-xl font-semibold text-cyan-400">Your Tasks</h2>
-
-                    {myReviews.length === 0 && teamReviews.length === 0 && (
-                        <div className="p-8 text-center border border-dashed border-slate-800 rounded-xl">
-                            <p className="text-slate-500">{UI_TEXT.NO_PENDING_TASKS}</p>
-                        </div>
-                    )}
-
-                    {myReviews.map((review: ReviewTask) => (
-                        <ReviewTaskCard key={review.id} review={review} type="employee" />
-                    ))}
-
-                    {teamReviews.map((review: ReviewTask) => (
-                        <ReviewTaskCard key={review.id} review={review} type="manager" />
-                    ))}
-                </Card>
+                <DashboardPageClient allReviews={allPendingReviews} />
 
                 <div className="space-y-6">
                     <Card className="space-y-6">

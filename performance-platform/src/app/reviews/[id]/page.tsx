@@ -5,6 +5,7 @@ import { ReviewMode } from '@/types';
 import ReviewForm from './ReviewForm';
 import ExportPdfButton from './ExportPdfButton';
 import { ERRORS } from '@/lib/constants';
+import { formatDistanceToNow } from 'date-fns';
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -58,10 +59,22 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="flex justify-between items-start gap-4">
                 <div className="space-y-2 flex-1">
-                    <h1 className="text-3xl font-bold text-white">{review.template.title}</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-white">{review.template.title}</h1>
+                        {review.isDraft && review.responses.length > 0 && mode !== 'VIEW' && (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Draft
+                            </span>
+                        )}
+                    </div>
                     <p className="text-slate-400">
                         {mode === 'EMPLOYEE' ? 'Self-Evaluation' : mode === 'MANAGER' ? `Review for ${review.employee.name}` : 'Review Details'}
                     </p>
+                    {review.isDraft && review.responses.length > 0 && mode !== 'VIEW' && (
+                        <p className="text-xs text-slate-500">
+                            Last updated: {formatDistanceToNow(review.updatedAt)} ago
+                        </p>
+                    )}
                 </div>
                 {review.status === 'COMPLETED' && mode === 'VIEW' && review.overallScore !== null && (
                     <div className={`px-4 py-3 rounded-lg ${scoreColors.bg} border ${scoreColors.border} text-center min-w-[120px]`}>

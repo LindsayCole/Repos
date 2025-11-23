@@ -67,6 +67,7 @@ export const UI_TEXT = {
     NAV_DASHBOARD: 'Dashboard',
     NAV_MY_TEAM: 'My Team',
     NAV_FORMS: 'Forms',
+    NAV_CYCLES: 'Review Cycles',
     NAV_SIGN_OUT: 'Sign Out',
 
     // Review Statuses
@@ -84,6 +85,23 @@ export const UI_TEXT = {
     DELETE: 'Delete',
     CONFIRM: 'Confirm',
     CANCEL: 'Cancel',
+
+    // Cycles
+    CYCLES_TITLE: 'Review Cycles',
+    CYCLES_SUBTITLE: 'Manage and track bulk performance review cycles',
+    CREATE_CYCLE: 'Create New Cycle',
+    NO_CYCLES: 'No review cycles created yet.',
+    CYCLE_DETAILS: 'Cycle Details',
+    CYCLE_PROGRESS: 'Cycle Progress',
+    SELECT_EMPLOYEES: 'Select Employees',
+    REVIEW_CONFIRM: 'Review & Confirm',
+    EMPLOYEES_SELECTED: (count: number) => `${count} employee${count !== 1 ? 's' : ''} selected`,
+    REVIEWS_TO_CREATE: (count: number) => `This will create ${count} review${count !== 1 ? 's' : ''}`,
+    CYCLE_STATUS_DRAFT: 'Draft',
+    CYCLE_STATUS_ACTIVE: 'Active',
+    CYCLE_STATUS_COMPLETED: 'Completed',
+    SEND_REMINDERS: 'Send Reminders to All Pending',
+    EXPORT_CYCLE_REPORT: 'Export Cycle Report',
 } as const;
 
 export type ErrorKey = keyof typeof ERRORS;
