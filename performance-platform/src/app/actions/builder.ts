@@ -133,7 +133,7 @@ export async function updateQuestionRoles(templateId: string, questionId: string
 export async function deleteTemplate(templateId: string) {
     try {
         // Check if template is being used in any reviews
-        const reviewCount = await prisma.review.count({
+        const reviewCount = await prisma.performanceReview.count({
             where: { templateId }
         });
 
