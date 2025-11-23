@@ -24,6 +24,11 @@ interface Employee {
         template: {
             title: string;
         };
+        actionItems?: Array<{
+            id: string;
+            status: string;
+            targetDate: Date | null;
+        }>;
     }>;
 }
 
@@ -141,6 +146,13 @@ export function TeamPageClient({ employees }: TeamPageClientProps) {
                             templateTitle: review.template.title
                         }));
 
+                        // Calculate action item stats
+                        const allActionItems = employee.reviewsAsEmployee.flatMap(r => r.actionItems || []);
+                        const pendingActionItems = allActionItems.filter(item => item.status === 'PENDING' || item.status === 'IN_PROGRESS');
+                        const overdueActionItems = pendingActionItems.filter(item =>
+                            item.targetDate && new Date(item.targetDate) < new Date()
+                        );
+
                         return (
                             <Card key={employee.id} className="space-y-4">
                                 <div className="flex justify-between items-start">
@@ -162,6 +174,25 @@ export function TeamPageClient({ employees }: TeamPageClientProps) {
                                         <div className="text-xs text-slate-500">{UI_TEXT.COMPLETED_REVIEWS(completedReviews.length)}</div>
                                     </div>
                                 </div>
+
+                                {/* Action Items Summary */}
+                                {(pendingActionItems.length > 0 || overdueActionItems.length > 0) && (
+                                    <div className="flex gap-2">
+                                        {pendingActionItems.length > 0 && (
+                                            <div className="flex-1 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                                                <div className="text-xs text-slate-400">Action Items</div>
+                                                <div className="text-lg font-bold text-cyan-300">{pendingActionItems.length}</div>
+                                            </div>
+                                        )}
+                                        {overdueActionItems.length > 0 && (
+                                            <div className="flex-1 px-3 py-2 bg-orange-500/10 border border-orange-500/30 rounded-lg relative">
+                                                <div className="text-xs text-slate-400">Overdue</div>
+                                                <div className="text-lg font-bold text-orange-300">{overdueActionItems.length}</div>
+                                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse" />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {sortedPendingReviews.length > 0 && (
                                     <div className="space-y-2">

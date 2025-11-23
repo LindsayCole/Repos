@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/lib/toast';
-import { SUCCESS_MESSAGES } from '@/lib/constants';
+import { SUCCESS_MESSAGES, UI_TEXT } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
+import ActionItemList from '@/components/reviews/ActionItemList';
 
 type Props = {
     review: any;
@@ -228,6 +229,23 @@ export default function ReviewForm({ review, mode, user }: Props) {
                 </div>
                 );
             })}
+
+            {/* Development Plan Section */}
+            {(mode === 'MANAGER' || mode === 'VIEW') && (
+                <Card className="mt-8">
+                    <h2 className="text-2xl font-semibold text-cyan-400 mb-4">
+                        {UI_TEXT.ACTION_ITEMS_TITLE}
+                    </h2>
+                    <p className="text-sm text-slate-400 mb-6">
+                        Action items to help {review.employee.name} grow and improve.
+                    </p>
+                    <ActionItemList
+                        reviewId={review.id}
+                        actionItems={review.actionItems || []}
+                        canEdit={mode === 'MANAGER'}
+                    />
+                </Card>
+            )}
 
             {mode !== 'VIEW' && (
                 <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800 backdrop-blur-sm z-50">

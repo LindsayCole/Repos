@@ -102,7 +102,74 @@ export const UI_TEXT = {
     CYCLE_STATUS_COMPLETED: 'Completed',
     SEND_REMINDERS: 'Send Reminders to All Pending',
     EXPORT_CYCLE_REPORT: 'Export Cycle Report',
+
+    // Action Items
+    ACTION_ITEMS_TITLE: 'Development Plan',
+    ADD_ACTION_ITEM: 'Add Action Item',
+    NO_ACTION_ITEMS: 'No action items yet. Add items to track development goals.',
+    MY_ACTION_ITEMS: 'My Action Items',
+    VIEW_ALL_ACTION_ITEMS: 'View All',
+    UPCOMING_ACTION_ITEMS: 'Upcoming Items',
+} as const;
+
+// Notification Types
+export const NOTIFICATION_TYPES = {
+    REVIEW_ASSIGNED: 'REVIEW_ASSIGNED',
+    REVIEW_DUE_SOON: 'REVIEW_DUE_SOON',
+    REVIEW_SUBMITTED: 'REVIEW_SUBMITTED',
+    REVIEW_COMPLETED: 'REVIEW_COMPLETED',
+    CYCLE_CREATED: 'CYCLE_CREATED',
+} as const;
+
+// Notification Message Templates
+export const NOTIFICATION_MESSAGES = {
+    REVIEW_ASSIGNED: (templateName: string) => ({
+        title: 'New Review Assigned',
+        message: `You have been assigned a ${templateName} review to complete.`
+    }),
+    REVIEW_DUE_SOON: (templateName: string, days: number) => ({
+        title: 'Review Due Soon',
+        message: `Your ${templateName} review is due in ${days} day${days !== 1 ? 's' : ''}.`
+    }),
+    REVIEW_OVERDUE: (templateName: string) => ({
+        title: 'Review Overdue',
+        message: `Your ${templateName} review is now overdue. Please complete it as soon as possible.`
+    }),
+    REVIEW_SUBMITTED: (employeeName: string, templateName: string) => ({
+        title: 'Review Submitted',
+        message: `${employeeName} has submitted their ${templateName} self-evaluation.`
+    }),
+    REVIEW_COMPLETED: (templateName: string) => ({
+        title: 'Review Completed',
+        message: `Your ${templateName} review has been completed by your manager.`
+    }),
+    CYCLE_CREATED: (cycleName: string, templateName: string) => ({
+        title: 'New Review Cycle',
+        message: `You have been assigned a review for the ${cycleName} cycle using the ${templateName} template.`
+    }),
+} as const;
+
+// Action Item Constants
+export const ACTION_ITEM_CATEGORIES = {
+    SKILL_DEVELOPMENT: 'Skill Development',
+    PERFORMANCE_IMPROVEMENT: 'Performance Improvement',
+    CAREER_GROWTH: 'Career Growth',
+    OTHER: 'Other'
+} as const;
+
+export const ACTION_ITEM_PRIORITIES = {
+    HIGH: 'High',
+    MEDIUM: 'Medium',
+    LOW: 'Low'
+} as const;
+
+export const ACTION_ITEM_STATUSES = {
+    PENDING: 'Pending',
+    IN_PROGRESS: 'In Progress',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled'
 } as const;
 
 export type ErrorKey = keyof typeof ERRORS;
 export type SuccessKey = keyof typeof SUCCESS_MESSAGES;
+export type NotificationType = keyof typeof NOTIFICATION_TYPES;

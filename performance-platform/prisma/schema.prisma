@@ -101,6 +101,7 @@ model PerformanceReview {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   responses            ReviewResponse[]
+  actionItems          ActionItem[]
 }
 
 model ReviewResponse {
@@ -160,4 +161,19 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model ActionItem {
+  id          String            @id @default(cuid())
+  reviewId    String
+  review      PerformanceReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  title       String            // "Improve communication skills"
+  description String?           // Detailed action plan
+  category    String?           // "SKILL_DEVELOPMENT", "PERFORMANCE_IMPROVEMENT", "CAREER_GROWTH", "OTHER"
+  priority    String            // "HIGH", "MEDIUM", "LOW"
+  targetDate  DateTime?         // When this should be completed
+  status      String            @default("PENDING") // "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }

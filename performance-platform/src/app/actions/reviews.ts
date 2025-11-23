@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ReviewFormData } from '@/types';
 import { sendEmail, reviewAssignedEmail, selfEvalSubmittedEmail, reviewCompletedEmail } from '@/lib/email';
-import { ERRORS, SUCCESS_MESSAGES } from '@/lib/constants';
+import { ERRORS, SUCCESS_MESSAGES, NOTIFICATION_TYPES, NOTIFICATION_MESSAGES } from '@/lib/constants';
+import { createNotification } from './notifications';
 
 export async function saveDraftReview(reviewId: string, responses: ReviewFormData) {
     try {
@@ -81,6 +82,16 @@ export async function createReviewCycle(
         const { subject, html } = reviewAssignedEmail(review.employee.name, review.template.title);
         await sendEmail({ to: review.employee.email, subject, html });
 
+        // Create notification for employee
+        const notificationMessage = NOTIFICATION_MESSAGES.REVIEW_ASSIGNED(review.template.title);
+        await createNotification(
+            review.employeeId,
+            NOTIFICATION_TYPES.REVIEW_ASSIGNED,
+            notificationMessage.title,
+            notificationMessage.message,
+            `/reviews/${review.id}`
+        );
+
         revalidatePath('/dashboard');
         return { success: true, message: SUCCESS_MESSAGES.REVIEW_CREATED };
     } catch (error) {
@@ -141,6 +152,16 @@ export async function submitEmployeeReview(reviewId: string, responses: ReviewFo
         // Send email
         const { subject, html } = selfEvalSubmittedEmail(review.employee.name, review.manager.name, review.template.title);
         await sendEmail({ to: review.manager.email, subject, html });
+
+        // Create notification for manager
+        const notificationMessage = NOTIFICATION_MESSAGES.REVIEW_SUBMITTED(review.employee.name, review.template.title);
+        await createNotification(
+            review.managerId,
+            NOTIFICATION_TYPES.REVIEW_SUBMITTED,
+            notificationMessage.title,
+            notificationMessage.message,
+            `/reviews/${review.id}`
+        );
 
         revalidatePath('/dashboard');
         redirect('/dashboard');
@@ -216,6 +237,16 @@ export async function submitManagerReview(reviewId: string, responses: ReviewFor
         // Send email
         const { subject, html } = reviewCompletedEmail(review.employee.name, review.manager.name, review.template.title);
         await sendEmail({ to: [review.employee.email, review.manager.email].join(','), subject, html });
+
+        // Create notification for employee
+        const notificationMessage = NOTIFICATION_MESSAGES.REVIEW_COMPLETED(review.template.title);
+        await createNotification(
+            review.employeeId,
+            NOTIFICATION_TYPES.REVIEW_COMPLETED,
+            notificationMessage.title,
+            notificationMessage.message,
+            `/reviews/${review.id}`
+        );
 
         revalidatePath('/dashboard');
         redirect('/dashboard');

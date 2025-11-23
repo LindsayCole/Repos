@@ -8,17 +8,25 @@ import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { UI_TEXT } from '@/lib/constants';
+import NotificationBell from './NotificationBell';
 
 export default function Navigation() {
     const pathname = usePathname();
     const [userRole, setUserRole] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // Fetch user role
+    // Fetch user role and ID
     useEffect(() => {
         fetch('/api/current-user')
             .then(res => res.json())
-            .then(data => setUserRole(data.role))
-            .catch(() => setUserRole(null));
+            .then(data => {
+                setUserRole(data.role);
+                setUserId(data.id);
+            })
+            .catch(() => {
+                setUserRole(null);
+                setUserId(null);
+            });
     }, []);
 
     // Don't show navigation on login page
@@ -81,14 +89,19 @@ export default function Navigation() {
                         </div>
                     </div>
 
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => signOut({ callbackUrl: '/login' })}
-                    >
-                        <LogOut size={16} className="mr-2" />
-                        {UI_TEXT.NAV_SIGN_OUT}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {/* Notification Bell */}
+                        {userId && <NotificationBell userId={userId} />}
+
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => signOut({ callbackUrl: '/login' })}
+                        >
+                            <LogOut size={16} className="mr-2" />
+                            {UI_TEXT.NAV_SIGN_OUT}
+                        </Button>
+                    </div>
                 </div>
             </div>
         </motion.nav>

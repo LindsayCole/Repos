@@ -30,7 +30,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             },
             responses: true,
             employee: true,
-            manager: true
+            manager: true,
+            actionItems: {
+                orderBy: { createdAt: 'desc' }
+            }
         }
     });
 

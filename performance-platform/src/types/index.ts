@@ -1,6 +1,6 @@
 // TypeScript type definitions for the application
 
-import { User as PrismaUser, FormTemplate, FormSection, FormQuestion, PerformanceReview, ReviewResponse, ReviewCycle } from '@prisma/client';
+import { User as PrismaUser, FormTemplate, FormSection, FormQuestion, PerformanceReview, ReviewResponse, ReviewCycle, ActionItem } from '@prisma/client';
 
 export type User = PrismaUser;
 
@@ -45,3 +45,14 @@ export interface ReviewFormData {
         comment: string;
     };
 }
+
+export type ActionItemCategory = 'SKILL_DEVELOPMENT' | 'PERFORMANCE_IMPROVEMENT' | 'CAREER_GROWTH' | 'OTHER';
+export type ActionItemPriority = 'HIGH' | 'MEDIUM' | 'LOW';
+export type ActionItemStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export type ActionItemWithReview = ActionItem & {
+    review: PerformanceReview & {
+        template: FormTemplate;
+        employee: User;
+    };
+};

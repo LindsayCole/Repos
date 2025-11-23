@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { sendEmail, reviewAssignedEmail } from '@/lib/email';
-import { ERRORS, SUCCESS_MESSAGES } from '@/lib/constants';
+import { ERRORS, SUCCESS_MESSAGES, NOTIFICATION_TYPES, NOTIFICATION_MESSAGES } from '@/lib/constants';
+import { createNotification } from './notifications';
 
 interface CreateCycleData {
     name: string;
@@ -100,6 +101,15 @@ export async function createReviewCycle(
 
         await Promise.all(reviewPromises);
 
+        // Get all created reviews with their IDs for notification creation
+        const createdReviews = await prisma.performanceReview.findMany({
+            where: { cycleId: cycle.id },
+            select: {
+                id: true,
+                employeeId: true,
+            }
+        });
+
         // Send email notifications in batches (don't send 500 individual emails)
         // Group employees and send BCC emails
         const EMAIL_BATCH_SIZE = 50;
@@ -129,6 +139,37 @@ export async function createReviewCycle(
         // Don't await email sending to avoid blocking
         Promise.all(emailPromises).catch(err =>
             console.error('Error sending bulk emails:', err)
+        );
+
+        // Create notifications for all employees (in batches to avoid overwhelming the database)
+        const NOTIFICATION_BATCH_SIZE = 50;
+        const notificationPromises = [];
+
+        for (let i = 0; i < employees.length; i += NOTIFICATION_BATCH_SIZE) {
+            const batch = employees.slice(i, i + NOTIFICATION_BATCH_SIZE);
+
+            const batchPromise = Promise.all(
+                batch.map(async (employee) => {
+                    const review = createdReviews.find(r => r.employeeId === employee.id);
+                    if (review) {
+                        const notificationMessage = NOTIFICATION_MESSAGES.CYCLE_CREATED(cycle.name, template.title);
+                        await createNotification(
+                            employee.id,
+                            NOTIFICATION_TYPES.CYCLE_CREATED,
+                            notificationMessage.title,
+                            notificationMessage.message,
+                            `/reviews/${review.id}`
+                        );
+                    }
+                })
+            );
+
+            notificationPromises.push(batchPromise);
+        }
+
+        // Don't await notification creation to avoid blocking
+        Promise.all(notificationPromises).catch(err =>
+            console.error('Error creating notifications:', err)
         );
 
         // Get final count of created reviews

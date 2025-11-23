@@ -5,8 +5,9 @@ import { redirect } from 'next/navigation';
 import CreateReviewButton from '@/components/dashboard/CreateReviewButton';
 import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import { DashboardPageClient } from '@/components/dashboard/DashboardPageClient';
+import ActionItemsWidget from '@/components/dashboard/ActionItemsWidget';
 import { UI_TEXT } from '@/lib/constants';
-import { ReviewTask } from '@/types';
+import { ReviewTask, ActionItemWithReview } from '@/types';
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
@@ -90,6 +91,27 @@ export default async function DashboardPage() {
 
     const scoreColors = getScoreColor(latestScore);
 
+    // Fetch action items for the user
+    const userActionItems = await prisma.actionItem.findMany({
+        where: {
+            review: {
+                employeeId: user.id
+            },
+            status: {
+                in: ['PENDING', 'IN_PROGRESS']
+            }
+        },
+        include: {
+            review: {
+                include: {
+                    template: true,
+                    employee: true
+                }
+            }
+        },
+        orderBy: { targetDate: 'asc' }
+    });
+
     // Fetch data for HR test button
     const template = await prisma.formTemplate.findFirst();
     const employee = await prisma.user.findFirst({ where: { role: 'EMPLOYEE' } });
@@ -117,6 +139,9 @@ export default async function DashboardPage() {
                 <DashboardPageClient allReviews={allPendingReviews} />
 
                 <div className="space-y-6">
+                    {/* Action Items Widget */}
+                    <ActionItemsWidget actionItems={userActionItems as ActionItemWithReview[]} />
+
                     <Card className="space-y-6">
                         <h2 className="text-xl font-semibold text-cyan-400">Latest Performance Score</h2>
                         <div className={`p-6 ${scoreColors.bg} rounded-lg border border-${scoreColors.text.replace('text-', '')}/30`}>

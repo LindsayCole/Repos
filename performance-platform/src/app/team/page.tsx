@@ -18,6 +18,13 @@ export default async function TeamPage() {
             reviewsAsEmployee: {
                 include: {
                     template: true,
+                    actionItems: {
+                        where: {
+                            status: {
+                                in: ['PENDING', 'IN_PROGRESS']
+                            }
+                        }
+                    }
                 },
                 orderBy: { createdAt: 'desc' },
             },
