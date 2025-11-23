@@ -123,7 +123,7 @@ export default async function DashboardPage() {
                         <h2 className="text-xl font-semibold text-white">Active Goals</h2>
                     </div>
                     <Link href="/goals">
-                        <Button variant="outline" className="gap-2">
+                        <Button variant="secondary" className="gap-2">
                             View All Goals
                         </Button>
                     </Link>

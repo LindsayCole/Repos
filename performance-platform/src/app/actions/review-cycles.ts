@@ -94,7 +94,13 @@ export async function launchReviewCycle(cycleId: string) {
     }
 
     // Get target users
-    let targetUsers;
+    let targetUsers: Array<{
+        id: string;
+        managerId: string | null;
+        manager: { id: string; name: string; email: string } | null;
+        name: string;
+        email: string;
+    }> = [];
 
     if (cycle.includeAllUsers) {
         targetUsers = await prisma.user.findMany({
@@ -117,8 +123,6 @@ export async function launchReviewCycle(cycleId: string) {
                 manager: true,
             },
         });
-    } else {
-        targetUsers = [];
     }
 
     // Create reviews for all target users
