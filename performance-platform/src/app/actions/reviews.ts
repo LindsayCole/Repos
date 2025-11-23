@@ -88,7 +88,7 @@ export async function submitManagerReview(reviewId: string, responses: ReviewFor
         const promises = Object.entries(responses).map(([questionId, data]) => {
             return prisma.reviewResponse.findFirst({
                 where: { reviewId, questionId }
-            }).then(response => {
+            }).then((response: { id: string } | null) => {
                 if (response) {
                     return prisma.reviewResponse.update({
                         where: { id: response.id },
@@ -120,7 +120,7 @@ export async function submitManagerReview(reviewId: string, responses: ReviewFor
 
         const validRatings = allResponses
             .map((r: { managerRating: number | null }) => r.managerRating)
-            .filter((rating): rating is number => rating !== null);
+            .filter((rating: number | null): rating is number => rating !== null);
 
         const overallScore = validRatings.length > 0
             ? Math.round((validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length) * 100) / 100
