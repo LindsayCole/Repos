@@ -80,7 +80,95 @@ async function main() {
         }
     })
 
-    console.log({ hr, manager, employee, template })
+    // 3. Create Sample Goals
+    const goal1 = await prisma.goal.create({
+        data: {
+            title: 'Complete Advanced TypeScript Course',
+            description: 'Enhance technical skills by completing an advanced TypeScript certification course to improve code quality and maintainability.',
+            status: 'IN_PROGRESS',
+            progress: 65,
+            targetDate: new Date('2025-12-31'),
+            userId: employee.id,
+            managerId: manager.id,
+        },
+    })
+
+    const goal2 = await prisma.goal.create({
+        data: {
+            title: 'Lead Q2 Project Initiative',
+            description: 'Take ownership of the Q2 customer dashboard redesign project from planning through deployment.',
+            status: 'NOT_STARTED',
+            progress: 0,
+            targetDate: new Date('2025-06-30'),
+            userId: employee.id,
+            managerId: manager.id,
+        },
+    })
+
+    const goal3 = await prisma.goal.create({
+        data: {
+            title: 'Improve Code Review Turnaround Time',
+            description: 'Reduce average code review response time from 24 hours to under 8 hours to improve team velocity.',
+            status: 'COMPLETED',
+            progress: 100,
+            targetDate: new Date('2025-03-31'),
+            completionDate: new Date('2025-03-15'),
+            userId: employee.id,
+            managerId: manager.id,
+        },
+    })
+
+    // 4. Create a Goal Update (progress history)
+    await prisma.goalUpdate.create({
+        data: {
+            goalId: goal1.id,
+            oldProgress: 45,
+            newProgress: 65,
+            note: 'Completed modules 5-8. Working on final project now.',
+            createdById: employee.id,
+        },
+    })
+
+    // 5. Create Review Cycle (Annual)
+    const reviewCycle = await prisma.reviewCycle.create({
+        data: {
+            name: '2025 Annual Performance Review Cycle',
+            description: 'Annual performance reviews for all employees across the organization.',
+            frequency: 'ANNUAL',
+            startDate: new Date('2025-01-01'),
+            nextRunDate: new Date('2026-01-01'),
+            templateId: template.id,
+            isActive: true,
+            includeAllUsers: true,
+        },
+    })
+
+    // 6. Create Quarterly Review Cycle
+    const quarterlyReviewCycle = await prisma.reviewCycle.create({
+        data: {
+            name: 'Q1 2025 Quarterly Check-ins',
+            description: 'Lightweight quarterly performance check-ins for engineering department.',
+            frequency: 'QUARTERLY',
+            startDate: new Date('2025-04-01'),
+            nextRunDate: new Date('2025-07-01'),
+            templateId: template.id,
+            isActive: true,
+            departments: JSON.stringify(['Engineering', 'Product']),
+            includeAllUsers: false,
+        },
+    })
+
+    console.log({
+        hr,
+        manager,
+        employee,
+        template,
+        goal1,
+        goal2,
+        goal3,
+        reviewCycle,
+        quarterlyReviewCycle
+    })
 }
 
 main()
