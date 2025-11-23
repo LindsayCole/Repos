@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { useToast } from '@/lib/toast';
+import { SUCCESS_MESSAGES } from '@/lib/constants';
 
 type Props = {
     review: any;
@@ -15,9 +17,35 @@ type Props = {
 export default function ReviewForm({ review, mode, user }: Props) {
     const [responses, setResponses] = useState<Record<string, { rating: number, comment: string }>>({});
     const [submitting, setSubmitting] = useState(false);
+    const toast = useToast();
 
     // Initialize responses from existing data if any
     // ... (omitted for brevity, would map review.responses)
+
+    // Filter questions based on user role
+    const shouldShowQuestion = (question: any): boolean => {
+        // If no applicableRoles field or it's null, show to everyone
+        if (!question.applicableRoles) {
+            return true;
+        }
+
+        try {
+            // Parse the JSON string to get the array of roles
+            const roles = JSON.parse(question.applicableRoles);
+
+            // If it's not an array or empty array, show to everyone
+            if (!Array.isArray(roles) || roles.length === 0) {
+                return true;
+            }
+
+            // Check if user's role is in the applicable roles
+            return roles.includes(user.role);
+        } catch (error) {
+            // If there's a parsing error, default to showing the question
+            console.error('Error parsing applicableRoles:', error);
+            return true;
+        }
+    };
 
     const handleRatingChange = (questionId: string, rating: number) => {
         setResponses(prev => ({
@@ -38,11 +66,14 @@ export default function ReviewForm({ review, mode, user }: Props) {
         try {
             if (mode === 'EMPLOYEE') {
                 await submitEmployeeReview(review.id, responses);
+                toast.success(SUCCESS_MESSAGES.REVIEW_SUBMITTED);
             } else if (mode === 'MANAGER') {
                 await submitManagerReview(review.id, responses);
+                toast.success(SUCCESS_MESSAGES.REVIEW_SUBMITTED);
             }
         } catch (error) {
             console.error(error);
+            toast.error(error instanceof Error ? error.message : 'Failed to submit review');
             setSubmitting(false);
         }
     };
@@ -56,13 +87,22 @@ export default function ReviewForm({ review, mode, user }: Props) {
 
     return (
         <div className="space-y-8 pb-20">
-            {review.template.sections.map((section: any) => (
-                <div key={section.id} className="space-y-6">
-                    <h2 className="text-2xl font-semibold text-cyan-400 border-b border-slate-800 pb-2">
-                        {section.title}
-                    </h2>
+            {review.template.sections.map((section: any) => {
+                // Filter questions based on user role
+                const visibleQuestions = section.questions.filter(shouldShowQuestion);
 
-                    {section.questions.map((question: any) => {
+                // Skip rendering the section if no questions are visible
+                if (visibleQuestions.length === 0) {
+                    return null;
+                }
+
+                return (
+                    <div key={section.id} className="space-y-6">
+                        <h2 className="text-2xl font-semibold text-cyan-400 border-b border-slate-800 pb-2">
+                            {section.title}
+                        </h2>
+
+                        {visibleQuestions.map((question: any) => {
                         const existingResponse = review.responses.find((r: any) => r.questionId === question.id);
                         const currentRating = responses[question.id]?.rating || (mode === 'MANAGER' ? existingResponse?.managerRating : existingResponse?.selfRating);
                         const currentComment = responses[question.id]?.comment || (mode === 'MANAGER' ? existingResponse?.managerComment : existingResponse?.selfComment);
@@ -126,7 +166,8 @@ export default function ReviewForm({ review, mode, user }: Props) {
                         );
                     })}
                 </div>
-            ))}
+                );
+            })}
 
             {mode !== 'VIEW' && (
                 <div className="fixed bottom-8 right-8 z-50">

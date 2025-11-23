@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { UI_TEXT } from '@/lib/constants';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import PerformanceChart from '@/components/dashboard/PerformanceChart';
@@ -26,22 +27,46 @@ export default async function TeamPage() {
         },
     });
 
+    // Helper function to get score color
+    const getScoreColor = (score: number | null) => {
+        if (!score) return { bg: 'bg-slate-700', text: 'text-slate-400', border: 'border-slate-600' };
+        if (score >= 3.5) return { bg: 'bg-green-500/20', text: 'text-green-300', border: 'border-green-500/30' };
+        if (score >= 2.5) return { bg: 'bg-purple-500/20', text: 'text-purple-300', border: 'border-purple-500/30' };
+        if (score >= 1.5) return { bg: 'bg-orange-500/20', text: 'text-orange-300', border: 'border-orange-500/30' };
+        return { bg: 'bg-red-500/20', text: 'text-red-300', border: 'border-red-500/30' };
+    };
+
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-4xl font-bold text-white mb-2">My Team</h1>
-                <p className="text-slate-400">Overview of your direct reports and their performance.</p>
+                <h1 className="text-4xl font-bold text-white mb-2">{UI_TEXT.TEAM_TITLE}</h1>
+                <p className="text-slate-400">{UI_TEXT.TEAM_SUBTITLE}</p>
             </div>
 
             {employees.length === 0 ? (
                 <Card>
-                    <p className="text-slate-400 text-center py-8">No direct reports found.</p>
+                    <p className="text-slate-400 text-center py-8">{UI_TEXT.NO_DIRECT_REPORTS}</p>
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {employees.map(employee => {
                         const completedReviews = employee.reviewsAsEmployee.filter(r => r.status === 'COMPLETED');
                         const pendingReviews = employee.reviewsAsEmployee.filter(r => r.status === 'PENDING_MANAGER');
+
+                        // Calculate average overall score
+                        const reviewsWithScores = completedReviews.filter(r => r.overallScore !== null);
+                        const avgScore = reviewsWithScores.length > 0
+                            ? reviewsWithScores.reduce((sum, r) => sum + (r.overallScore || 0), 0) / reviewsWithScores.length
+                            : null;
+
+                        const scoreColors = getScoreColor(avgScore);
+
+                        // Prepare score data for performance chart
+                        const employeeScoreData = reviewsWithScores.map(review => ({
+                            date: review.updatedAt.toISOString(),
+                            score: review.overallScore!,
+                            templateTitle: review.template.title
+                        }));
 
                         return (
                             <Card key={employee.id} className="space-y-4">
@@ -53,16 +78,22 @@ export default async function TeamPage() {
                                             <p className="text-xs text-slate-500 mt-1">{employee.department}</p>
                                         )}
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-2xl font-bold text-purple-400">{completedReviews.length}</div>
-                                        <div className="text-xs text-slate-500">Completed Reviews</div>
+                                    <div className="text-right space-y-2">
+                                        <div className={`px-3 py-2 rounded-lg ${scoreColors.bg} border ${scoreColors.border}`}>
+                                            <div className="text-xs text-slate-400">Avg Score</div>
+                                            <div className={`text-2xl font-bold ${scoreColors.text}`}>
+                                                {avgScore !== null ? avgScore.toFixed(2) : '--'}
+                                            </div>
+                                            <div className="text-xs text-slate-500">/ 4.0</div>
+                                        </div>
+                                        <div className="text-xs text-slate-500">{UI_TEXT.COMPLETED_REVIEWS(completedReviews.length)}</div>
                                     </div>
                                 </div>
 
                                 {pendingReviews.length > 0 && (
                                     <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
                                         <p className="text-sm text-orange-300">
-                                            {pendingReviews.length} review{pendingReviews.length > 1 ? 's' : ''} awaiting your input
+                                            {UI_TEXT.PENDING_REVIEWS(pendingReviews.length)}
                                         </p>
                                     </div>
                                 )}
@@ -90,7 +121,7 @@ export default async function TeamPage() {
                                     )}
                                 </div>
 
-                                <PerformanceChart userId={employee.id} />
+                                <PerformanceChart scores={employeeScoreData} />
                             </Card>
                         );
                     })}

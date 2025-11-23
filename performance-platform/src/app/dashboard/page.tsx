@@ -35,6 +35,39 @@ export default async function DashboardPage() {
         include: { employee: true, template: true }
     });
 
+    // Fetch completed reviews for the user to get latest score
+    const completedReviews = await prisma.performanceReview.findMany({
+        where: {
+            employeeId: user.id,
+            status: 'COMPLETED',
+            overallScore: { not: null }
+        },
+        include: {
+            template: true
+        },
+        orderBy: { updatedAt: 'desc' }
+    });
+
+    const latestScore = completedReviews.length > 0 ? completedReviews[0].overallScore : null;
+
+    // Prepare score data for performance chart
+    const scoreData = completedReviews.map(review => ({
+        date: review.updatedAt.toISOString(),
+        score: review.overallScore!,
+        templateTitle: review.template.title
+    }));
+
+    // Helper function to get score color
+    const getScoreColor = (score: number | null) => {
+        if (!score) return { bg: 'bg-slate-700', text: 'text-slate-400', label: 'No Score' };
+        if (score >= 3.5) return { bg: 'bg-green-500/20', text: 'text-green-300', label: 'Excellent' };
+        if (score >= 2.5) return { bg: 'bg-purple-500/20', text: 'text-purple-300', label: 'Good' };
+        if (score >= 1.5) return { bg: 'bg-orange-500/20', text: 'text-orange-300', label: 'Needs Improvement' };
+        return { bg: 'bg-red-500/20', text: 'text-red-300', label: 'Poor' };
+    };
+
+    const scoreColors = getScoreColor(latestScore);
+
     // Fetch data for HR test button
     const template = await prisma.formTemplate.findFirst();
     const employee = await prisma.user.findFirst({ where: { role: 'EMPLOYEE' } });
@@ -79,6 +112,21 @@ export default async function DashboardPage() {
 
                 <div className="space-y-6">
                     <Card className="space-y-6">
+                        <h2 className="text-xl font-semibold text-cyan-400">Latest Performance Score</h2>
+                        <div className={`p-6 ${scoreColors.bg} rounded-lg border border-${scoreColors.text.replace('text-', '')}/30`}>
+                            <div className="text-center">
+                                <div className="text-sm text-slate-400 mb-2">Your Most Recent Score</div>
+                                <div className={`text-5xl font-bold ${scoreColors.text} mb-2`}>
+                                    {latestScore !== null ? latestScore.toFixed(2) : '--'}
+                                </div>
+                                <div className="text-lg text-slate-400 mb-3">/ 4.0</div>
+                                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${scoreColors.bg} ${scoreColors.text}`}>
+                                    {scoreColors.label}
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                    <Card className="space-y-6">
                         <h2 className="text-xl font-semibold text-purple-400">Quick Stats</h2>
                         <div className="space-y-4">
                             <div className="p-4 bg-slate-800/30 rounded-lg">
@@ -94,7 +142,7 @@ export default async function DashboardPage() {
                             </div>
                         </div>
                     </Card>
-                    <PerformanceChart userId={user.id} />
+                    <PerformanceChart scores={scoreData} />
                 </div>
             </div>
         </div>

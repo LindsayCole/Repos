@@ -2,25 +2,38 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { TemplateWithSections } from '@/types';
+import { ERRORS, SUCCESS_MESSAGES } from '@/lib/constants';
 
 export async function createTemplate(title: string, description: string, userId: string) {
-    const template = await prisma.formTemplate.create({
-        data: { title, description, createdById: userId }
-    });
-    revalidatePath('/builder');
-    return template;
+    try {
+        const template = await prisma.formTemplate.create({
+            data: { title, description, createdById: userId }
+        });
+        revalidatePath('/builder');
+        return { success: true, template, message: SUCCESS_MESSAGES.TEMPLATE_CREATED };
+    } catch (error) {
+        console.error('Error creating template:', error);
+        throw new Error(ERRORS.INTERNAL_ERROR);
+    }
 }
 
 export async function updateTemplate(id: string, title: string, description: string) {
-    await prisma.formTemplate.update({
-        where: { id },
-        data: { title, description }
-    });
-    revalidatePath(`/builder/${id}`);
-    revalidatePath('/builder');
+    try {
+        await prisma.formTemplate.update({
+            where: { id },
+            data: { title, description }
+        });
+        revalidatePath(`/builder/${id}`);
+        revalidatePath('/builder');
+        return { success: true, message: SUCCESS_MESSAGES.TEMPLATE_UPDATED };
+    } catch (error) {
+        console.error('Error updating template:', error);
+        throw new Error(ERRORS.TEMPLATE_NOT_FOUND);
+    }
 }
 
-async function getTemplateWithSections(templateId: string) {
+async function getTemplateWithSections(templateId: string): Promise<TemplateWithSections | null> {
     return prisma.formTemplate.findUnique({
         where: { id: templateId },
         include: {
@@ -33,41 +46,86 @@ async function getTemplateWithSections(templateId: string) {
 }
 
 export async function addSection(templateId: string, title: string, order: number) {
-    await prisma.formSection.create({
-        data: { templateId, title, order }
-    });
-    revalidatePath(`/builder/${templateId}`);
-    const updatedTemplate = await getTemplateWithSections(templateId);
-    return updatedTemplate?.sections || [];
+    try {
+        await prisma.formSection.create({
+            data: { templateId, title, order }
+        });
+        revalidatePath(`/builder/${templateId}`);
+        const updatedTemplate = await getTemplateWithSections(templateId);
+        return updatedTemplate?.sections || [];
+    } catch (error) {
+        console.error('Error adding section:', error);
+        throw new Error(ERRORS.INTERNAL_ERROR);
+    }
 }
 
-export async function addQuestion(templateId: string, sectionId: string, text: string, order: number) {
-    await prisma.formQuestion.create({
-        data: { sectionId, text, order }
-    });
-    revalidatePath(`/builder/${templateId}`);
-    const updatedTemplate = await getTemplateWithSections(templateId);
-    return updatedTemplate?.sections || [];
+export async function addQuestion(templateId: string, sectionId: string, text: string, order: number, applicableRoles?: string[] | null) {
+    try {
+        await prisma.formQuestion.create({
+            data: {
+                sectionId,
+                text,
+                order,
+                applicableRoles: applicableRoles && applicableRoles.length > 0 ? JSON.stringify(applicableRoles) : null
+            }
+        });
+        revalidatePath(`/builder/${templateId}`);
+        const updatedTemplate = await getTemplateWithSections(templateId);
+        return updatedTemplate?.sections || [];
+    } catch (error) {
+        console.error('Error adding question:', error);
+        throw new Error(ERRORS.INTERNAL_ERROR);
+    }
 }
 
 export async function deleteSection(templateId: string, sectionId: string) {
-    await prisma.formSection.delete({ where: { id: sectionId } });
-    revalidatePath(`/builder/${templateId}`);
-    const updatedTemplate = await getTemplateWithSections(templateId);
-    return updatedTemplate?.sections || [];
+    try {
+        await prisma.formSection.delete({ where: { id: sectionId } });
+        revalidatePath(`/builder/${templateId}`);
+        const updatedTemplate = await getTemplateWithSections(templateId);
+        return updatedTemplate?.sections || [];
+    } catch (error) {
+        console.error('Error deleting section:', error);
+        throw new Error(ERRORS.TEMPLATE_DELETE_FAILED);
+    }
 }
 
 export async function deleteQuestion(templateId: string, questionId: string) {
-    await prisma.formQuestion.delete({ where: { id: questionId } });
-    revalidatePath(`/builder/${templateId}`);
-    const updatedTemplate = await getTemplateWithSections(templateId);
-    return updatedTemplate?.sections || [];
+    try {
+        await prisma.formQuestion.delete({ where: { id: questionId } });
+        revalidatePath(`/builder/${templateId}`);
+        const updatedTemplate = await getTemplateWithSections(templateId);
+        return updatedTemplate?.sections || [];
+    } catch (error) {
+        console.error('Error deleting question:', error);
+        throw new Error(ERRORS.TEMPLATE_DELETE_FAILED);
+    }
 }
 
 export async function updateQuestionText(questionId: string, text: string) {
-    await prisma.formQuestion.update({
-        where: { id: questionId },
-        data: { text }
-    });
-    // No revalidate needed here as it's on blur from client-side state
+    try {
+        await prisma.formQuestion.update({
+            where: { id: questionId },
+            data: { text }
+        });
+        // No revalidate needed here as it's on blur from client-side state
+    } catch (error) {
+        console.error('Error updating question text:', error);
+        throw new Error(ERRORS.INTERNAL_ERROR);
+    }
+}
+
+export async function updateQuestionRoles(templateId: string, questionId: string, applicableRoles: string[] | null) {
+    try {
+        await prisma.formQuestion.update({
+            where: { id: questionId },
+            data: {
+                applicableRoles: applicableRoles && applicableRoles.length > 0 ? JSON.stringify(applicableRoles) : null
+            }
+        });
+        revalidatePath(`/builder/${templateId}`);
+    } catch (error) {
+        console.error('Error updating question roles:', error);
+        throw new Error(ERRORS.INTERNAL_ERROR);
+    }
 }

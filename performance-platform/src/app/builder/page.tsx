@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { UI_TEXT } from '@/lib/constants';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -18,15 +19,15 @@ export default async function BuilderPage() {
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-white">Form Templates</h1>
+                <h1 className="text-3xl font-bold text-white">{UI_TEXT.BUILDER_TITLE}</h1>
                 <Link href="/builder/new">
-                    <Button variant="primary">Create New Template</Button>
+                    <Button variant="primary">{UI_TEXT.CREATE_TEMPLATE}</Button>
                 </Link>
             </div>
 
             {templates.length === 0 ? (
                 <Card>
-                    <p className="text-slate-400 text-center py-8">No templates created yet.</p>
+                    <p className="text-slate-400 text-center py-8">{UI_TEXT.NO_TEMPLATES}</p>
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -38,8 +39,8 @@ export default async function BuilderPage() {
                                     <p className="text-sm text-slate-400 mb-4 line-clamp-2">{template.description || 'No description'}</p>
                                 </div>
                                 <div className="text-xs text-slate-500 flex justify-between">
-                                    <span>{template._count.sections} Sections</span>
-                                    <span>{template._count.reviews} Reviews</span>
+                                    <span>{UI_TEXT.TEMPLATE_SECTIONS(template._count.sections)}</span>
+                                    <span>{UI_TEXT.TEMPLATE_REVIEWS(template._count.reviews)}</span>
                                 </div>
                             </Card>
                         </Link>

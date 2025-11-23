@@ -30,12 +30,6 @@ export interface PerformanceMetric {
     color: string;
 }
 
-export interface EmailParams {
-    to: string;
-    subject: string;
-    html: string;
-}
-
 export type ReviewMode = 'EMPLOYEE' | 'MANAGER' | 'VIEW';
 
 export interface ReviewFormData {
