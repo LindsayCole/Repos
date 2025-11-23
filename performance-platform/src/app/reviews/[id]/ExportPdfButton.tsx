@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/Button';
 import { Download } from 'lucide-react';
 import { useState } from 'react';
+import { UI_TEXT, ERRORS } from '@/lib/constants';
+import { useToast } from '@/lib/toast';
 
 interface ExportPdfButtonProps {
     reviewId: string;
@@ -11,6 +13,7 @@ interface ExportPdfButtonProps {
 }
 
 export default function ExportPdfButton({ reviewId, employeeName, templateTitle }: ExportPdfButtonProps) {
+    const toast = useToast();
     const [loading, setLoading] = useState(false);
 
     const handleExport = async () => {
@@ -30,7 +33,7 @@ export default function ExportPdfButton({ reviewId, employeeName, templateTitle 
             document.body.removeChild(a);
         } catch (error) {
             console.error('Export failed:', error);
-            alert('Failed to export PDF');
+            toast.error(ERRORS.PDF_EXPORT_FAILED);
         } finally {
             setLoading(false);
         }
@@ -44,7 +47,7 @@ export default function ExportPdfButton({ reviewId, employeeName, templateTitle 
             size="sm"
         >
             <Download size={16} className="mr-2" />
-            {loading ? 'Generating...' : 'Export PDF'}
+            {loading ? UI_TEXT.GENERATING : UI_TEXT.EXPORT_PDF}
         </Button>
     );
 }

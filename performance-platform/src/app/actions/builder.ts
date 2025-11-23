@@ -129,3 +129,30 @@ export async function updateQuestionRoles(templateId: string, questionId: string
         throw new Error(ERRORS.INTERNAL_ERROR);
     }
 }
+
+export async function deleteTemplate(templateId: string) {
+    try {
+        // Check if template is being used in any reviews
+        const reviewCount = await prisma.review.count({
+            where: { templateId }
+        });
+
+        if (reviewCount > 0) {
+            throw new Error(ERRORS.TEMPLATE_DELETE_IN_USE);
+        }
+
+        // Delete the template (cascade will delete sections/questions)
+        await prisma.formTemplate.delete({
+            where: { id: templateId }
+        });
+
+        revalidatePath('/builder');
+        return { success: true, message: SUCCESS_MESSAGES.TEMPLATE_DELETED };
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        if (error instanceof Error && error.message === ERRORS.TEMPLATE_DELETE_IN_USE) {
+            throw error;
+        }
+        throw new Error(ERRORS.TEMPLATE_DELETE_FAILED);
+    }
+}

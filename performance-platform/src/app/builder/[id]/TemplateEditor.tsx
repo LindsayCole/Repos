@@ -2,12 +2,13 @@
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTemplate, updateTemplate, addSection, addQuestion, deleteSection, deleteQuestion, updateQuestionText, updateQuestionRoles } from '@/app/actions/builder';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/lib/toast';
-import { SUCCESS_MESSAGES } from '@/lib/constants';
+import { SUCCESS_MESSAGES, UI_TEXT } from '@/lib/constants';
 
 export default function TemplateEditor({ template, userId }: { template: any, userId: string }) {
     const router = useRouter();
@@ -18,6 +19,17 @@ export default function TemplateEditor({ template, userId }: { template: any, us
     const [sections, setSections] = useState(template?.sections || []);
     const [newSectionTitle, setNewSectionTitle] = useState('');
     const [expandedRoleSelectors, setExpandedRoleSelectors] = useState<Record<string, boolean>>({});
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    });
 
     const handleSaveInfo = async () => {
         startTransition(async () => {
@@ -66,30 +78,46 @@ export default function TemplateEditor({ template, userId }: { template: any, us
         });
     };
 
-    const handleDeleteSection = async (sectionId: string) => {
-        if (!template) return;
-        startTransition(async () => {
-            try {
-                const newSections = await deleteSection(template.id, sectionId);
-                setSections(newSections);
-                toast.success(SUCCESS_MESSAGES.TEMPLATE_DELETED);
-            } catch (e) {
-                console.error(e);
-                toast.error(e instanceof Error ? e.message : 'Failed to delete section');
+    const handleDeleteSection = async (sectionId: string, sectionTitle: string) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Delete Section',
+            message: `Are you sure you want to delete "${sectionTitle}"? This will also delete all questions in this section.`,
+            onConfirm: () => {
+                setConfirmDialog({ ...confirmDialog, isOpen: false });
+                if (!template) return;
+                startTransition(async () => {
+                    try {
+                        const newSections = await deleteSection(template.id, sectionId);
+                        setSections(newSections);
+                        toast.success(SUCCESS_MESSAGES.TEMPLATE_DELETED);
+                    } catch (e) {
+                        console.error(e);
+                        toast.error(e instanceof Error ? e.message : 'Failed to delete section');
+                    }
+                });
             }
         });
     };
 
-    const handleDeleteQuestion = async (questionId: string) => {
-        if (!template) return;
-        startTransition(async () => {
-            try {
-                const newSections = await deleteQuestion(template.id, questionId);
-                setSections(newSections);
-                toast.success('Question deleted successfully');
-            } catch (e) {
-                console.error(e);
-                toast.error(e instanceof Error ? e.message : 'Failed to delete question');
+    const handleDeleteQuestion = async (questionId: string, questionText: string) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Delete Question',
+            message: `Are you sure you want to delete "${questionText}"?`,
+            onConfirm: () => {
+                setConfirmDialog({ ...confirmDialog, isOpen: false });
+                if (!template) return;
+                startTransition(async () => {
+                    try {
+                        const newSections = await deleteQuestion(template.id, questionId);
+                        setSections(newSections);
+                        toast.success('Question deleted successfully');
+                    } catch (e) {
+                        console.error(e);
+                        toast.error(e instanceof Error ? e.message : 'Failed to delete question');
+                    }
+                });
             }
         });
     };
@@ -170,7 +198,7 @@ export default function TemplateEditor({ template, userId }: { template: any, us
                         <Card key={section.id} className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <h3 className="text-lg font-semibold text-cyan-400">{section.title}</h3>
-                                <Button variant="danger" size="sm" onClick={() => handleDeleteSection(section.id)} disabled={isPending}><Trash2 size={16} /></Button>
+                                <Button variant="danger" size="sm" onClick={() => handleDeleteSection(section.id, section.title)} disabled={isPending}><Trash2 size={16} /></Button>
                             </div>
                             {section.questions.map((question: any, questionIndex: number) => {
                                 const roles = getQuestionRoles(question);
@@ -188,7 +216,7 @@ export default function TemplateEditor({ template, userId }: { template: any, us
                                                 placeholder="Question text..."
                                                 className="flex-grow bg-slate-950/50 border border-slate-800 rounded-lg p-2 text-slate-300 focus:outline-none focus:border-cyan-500/50"
                                             />
-                                            <Button variant="danger" size="sm" onClick={() => handleDeleteQuestion(question.id)} disabled={isPending}>
+                                            <Button variant="danger" size="sm" onClick={() => handleDeleteQuestion(question.id, question.text)} disabled={isPending}>
                                                 <Trash2 size={14} />
                                             </Button>
                                         </div>
@@ -266,6 +294,16 @@ export default function TemplateEditor({ template, userId }: { template: any, us
                     </div>
                 </div>
             )}
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                confirmLabel={UI_TEXT.DELETE}
+                cancelLabel={UI_TEXT.CANCEL}
+                variant="danger"
+                onConfirm={confirmDialog.onConfirm}
+                onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+            />
         </div>
     );
 }

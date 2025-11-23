@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { UI_TEXT } from '@/lib/constants';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { TemplateCard } from '@/components/builder/TemplateCard';
 
 export default async function BuilderPage() {
     const user = await getCurrentUser();
@@ -32,18 +33,7 @@ export default async function BuilderPage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {templates.map(template => (
-                        <Link href={`/builder/${template.id}`} key={template.id}>
-                            <Card className="hover:bg-slate-800/50 transition-colors h-full flex flex-col justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-cyan-400 mb-2">{template.title}</h2>
-                                    <p className="text-sm text-slate-400 mb-4 line-clamp-2">{template.description || 'No description'}</p>
-                                </div>
-                                <div className="text-xs text-slate-500 flex justify-between">
-                                    <span>{UI_TEXT.TEMPLATE_SECTIONS(template._count.sections)}</span>
-                                    <span>{UI_TEXT.TEMPLATE_REVIEWS(template._count.reviews)}</span>
-                                </div>
-                            </Card>
-                        </Link>
+                        <TemplateCard key={template.id} template={template} />
                     ))}
                 </div>
             )}

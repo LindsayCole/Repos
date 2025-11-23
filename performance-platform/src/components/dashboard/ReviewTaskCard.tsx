@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import Link from 'next/link';
 import { ReviewTask } from '@/types';
+import { UI_TEXT } from '@/lib/constants';
 
 interface ReviewTaskCardProps {
     review: ReviewTask;
@@ -20,12 +21,12 @@ export default function ReviewTaskCard({ review, type }: ReviewTaskCardProps) {
                     {isEmployee ? review.template.title : review.employee?.name}
                 </h3>
                 <p className="text-sm text-slate-400">
-                    {isEmployee ? 'Self-Evaluation Required' : `${review.template.title} - Manager Review`}
+                    {isEmployee ? UI_TEXT.STATUS_SELF_EVAL : `${review.template.title} - Manager Review`}
                 </p>
             </div>
             <Link href={`/reviews/${review.id}`}>
                 <Button size="sm" variant={isEmployee ? 'primary' : 'secondary'}>
-                    {isEmployee ? 'Start Review' : 'Review'}
+                    {isEmployee ? UI_TEXT.START_REVIEW : UI_TEXT.REVIEW_ACTION}
                 </Button>
             </Link>
         </div>

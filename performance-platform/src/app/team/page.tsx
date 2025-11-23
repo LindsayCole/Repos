@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { UI_TEXT } from '@/lib/constants';
@@ -108,12 +109,7 @@ export default async function TeamPage() {
                                                 <Link key={review.id} href={`/reviews/${review.id}`}>
                                                     <div className="flex justify-between items-center p-2 bg-slate-800/30 rounded hover:bg-slate-800/50 transition-colors">
                                                         <span className="text-sm text-slate-300">{review.template.title}</span>
-                                                        <span className={`text-xs px-2 py-1 rounded ${review.status === 'COMPLETED' ? 'bg-green-500/20 text-green-300' :
-                                                                review.status === 'PENDING_MANAGER' ? 'bg-orange-500/20 text-orange-300' :
-                                                                    'bg-blue-500/20 text-blue-300'
-                                                            }`}>
-                                                            {review.status.replace('_', ' ')}
-                                                        </span>
+                                                        <StatusBadge status={review.status} size="sm" />
                                                     </div>
                                                 </Link>
                                             ))}
