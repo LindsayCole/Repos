@@ -32,9 +32,6 @@ export default async function BuilderPage() {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    import DeleteTemplateButton from '@/components/builder/DeleteTemplateButton';
-
-                    // ... inside the map function ...
                     {templates.map(template => (
                         <Link href={`/builder/${template.id}`} key={template.id}>
                             <Card className="hover:bg-slate-800/50 transition-colors h-full flex flex-col justify-between group relative">

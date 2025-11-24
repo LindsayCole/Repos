@@ -129,15 +129,30 @@ export default function ReviewForm({ review, mode, user }: Props) {
             ))}
 
             {mode !== 'VIEW' && (
-                <div className="fixed bottom-8 right-8 z-50">
-                    <Button
-                        size="lg"
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                        className="shadow-2xl shadow-cyan-500/20"
-                    >
-                        {submitting ? 'Submitting...' : 'Submit Review'}
-                    </Button>
+                <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2">
+                    {(() => {
+                        const totalQuestions = review.template.sections.reduce((acc: number, section: any) => acc + section.questions.length, 0);
+                        const answeredQuestions = Object.values(responses).filter(r => r.rating > 0).length;
+                        const isComplete = answeredQuestions === totalQuestions;
+
+                        return (
+                            <>
+                                {!isComplete && (
+                                    <div className="bg-slate-900/90 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg text-sm backdrop-blur-md shadow-xl mb-2">
+                                        Please answer all {totalQuestions} questions ({answeredQuestions}/{totalQuestions} completed)
+                                    </div>
+                                )}
+                                <Button
+                                    size="lg"
+                                    onClick={handleSubmit}
+                                    disabled={submitting || !isComplete}
+                                    className={`shadow-2xl transition-all ${isComplete ? 'shadow-cyan-500/20' : 'opacity-50 cursor-not-allowed'}`}
+                                >
+                                    {submitting ? 'Submitting...' : 'Submit Review'}
+                                </Button>
+                            </>
+                        );
+                    })()}
                 </div>
             )}
         </div>
