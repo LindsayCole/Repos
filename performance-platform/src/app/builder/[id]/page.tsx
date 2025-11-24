@@ -27,5 +27,9 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
         if (!template && id !== 'new') redirect('/builder');
     }
 
-    return <TemplateEditor template={template} userId={user.id} />;
+    if (!template) {
+        redirect('/builder');
+    }
+
+    return <TemplateEditor template={template} />;
 }

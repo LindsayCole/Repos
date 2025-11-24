@@ -1,134 +1,170 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { createTemplate, updateTemplate, addSection, addQuestion, deleteSection, deleteQuestion, updateQuestionText } from '@/app/actions/builder';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { updateTemplate, addSection, addQuestion, deleteSection, deleteQuestion, updateQuestionText } from '@/app/actions/builder';
+import { templateSchema, sectionSchema, questionSchema } from '@/lib/validations';
+import { z, ZodError } from 'zod';
 
-export default function TemplateEditor({ template, userId }: { template: any, userId: string }) {
-    const router = useRouter();
+interface TemplateWithSections {
+    id: string;
+    title: string;
+    description: string | null;
+    sections: {
+        id: string;
+        title: string;
+        order: number;
+        questions: {
+            id: string;
+            text: string;
+            order: number;
+        }[];
+    }[];
+}
+
+export default function TemplateEditor({ template }: { template: TemplateWithSections }) {
     const [isPending, startTransition] = useTransition();
-    const [title, setTitle] = useState(template?.title || '');
-    const [description, setDescription] = useState(template?.description || '');
-    const [sections, setSections] = useState(template?.sections || []);
-    const [newSectionTitle, setNewSectionTitle] = useState('');
+    const [title, setTitle] = useState(template.title);
+    const [description, setDescription] = useState(template.description || '');
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-    const handleSaveInfo = async () => {
-        startTransition(async () => {
-            try {
-                if (template) {
-                    await updateTemplate(template.id, title, description);
-                } else {
-                    const newTemplate = await createTemplate(title, description, userId);
-                    router.replace(`/builder/${newTemplate.id}`); // Replace to avoid back to /new
-                }
-            } catch (e) { console.error(e); }
-        });
+    const handleUpdateTemplate = () => {
+        try {
+            templateSchema.parse({ title, description });
+            setErrors({});
+            startTransition(async () => {
+                await updateTemplate(template.id, title, description);
+            });
+        } catch (error) {
+            if (error instanceof ZodError) {
+                const newErrors: { [key: string]: string } = {};
+                (error as any).errors.forEach((err: any) => {
+                    if (err.path[0]) newErrors[err.path[0] as string] = err.message;
+                });
+                setErrors(newErrors);
+            }
+        }
     };
 
-    const handleAddSection = async () => {
-        if (!template || !newSectionTitle) return;
-        startTransition(async () => {
-            const newSections = await addSection(template.id, newSectionTitle, sections.length + 1);
-            setSections(newSections);
-            setNewSectionTitle('');
-        });
+    const handleAddSection = () => {
+        const title = prompt('Enter section title:');
+        if (!title) return;
+
+        try {
+            sectionSchema.parse({ title });
+            startTransition(async () => {
+                await addSection(template.id, title, template.sections.length);
+            });
+        } catch (error) {
+            if (error instanceof ZodError) {
+                alert((error as any).errors[0].message);
+            }
+        }
     };
 
-    const handleAddQuestion = async (sectionId: string, questionCount: number) => {
-        if (!template) return;
-        startTransition(async () => {
-            const newSections = await addQuestion(template.id, sectionId, "New Question", questionCount + 1);
-            setSections(newSections);
-        });
-    };
+    const handleAddQuestion = (sectionId: string) => {
+        const text = prompt('Enter question text:');
+        if (!text) return;
 
-    const handleDeleteSection = async (sectionId: string) => {
-        if (!template) return;
-        startTransition(async () => {
-            const newSections = await deleteSection(template.id, sectionId);
-            setSections(newSections);
-        });
-    };
-
-    const handleDeleteQuestion = async (questionId: string) => {
-        if (!template) return;
-        startTransition(async () => {
-            const newSections = await deleteQuestion(template.id, questionId);
-            setSections(newSections);
-        });
-    };
-
-    const handleQuestionTextChange = (sectionIndex: number, questionIndex: number, newText: string) => {
-        const newSections = [...sections];
-        newSections[sectionIndex].questions[questionIndex].text = newText;
-        setSections(newSections);
-    };
-
-    const handleQuestionTextBlur = (questionId: string, newText: string) => {
-        startTransition(async () => {
-            await updateQuestionText(questionId, newText);
-        });
+        try {
+            questionSchema.parse({ text });
+            startTransition(async () => {
+                await addQuestion(template.id, sectionId, text, 0); // Order handling is simplified for MVP
+            });
+        } catch (error) {
+            if (error instanceof ZodError) {
+                alert((error as any).errors[0].message);
+            }
+        }
     };
 
     return (
-        <div className="space-y-6 pb-20">
-            <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Template Title"
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-lg p-3 text-2xl font-bold text-white focus:outline-none focus:border-cyan-500/50"
-            />
-            <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Template Description..."
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-lg p-3 text-slate-300 focus:outline-none focus:border-cyan-500/50 min-h-[100px]"
-            />
-            <Button onClick={handleSaveInfo} disabled={isPending}>{isPending ? 'Saving...' : 'Save Template Info'}</Button>
-
-            <hr className="border-slate-800 my-8" />
-
-            {template && (
-                <div className="space-y-6">
-                    <h2 className="text-xl font-semibold text-white">Sections</h2>
-                    {sections.map((section: any, sectionIndex: number) => (
-                        <Card key={section.id} className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-cyan-400">{section.title}</h3>
-                                <Button variant="danger" size="sm" onClick={() => handleDeleteSection(section.id)} disabled={isPending}><Trash2 size={16} /></Button>
-                            </div>
-                            {section.questions.map((question: any, questionIndex: number) => (
-                                <div key={question.id} className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={question.text}
-                                        onChange={(e) => handleQuestionTextChange(sectionIndex, questionIndex, e.target.value)}
-                                        onBlur={(e) => handleQuestionTextBlur(question.id, e.target.value)}
-                                        placeholder="Question text..."
-                                        className="flex-grow bg-slate-950/50 border border-slate-800 rounded-lg p-2 text-slate-300 focus:outline-none focus:border-cyan-500/50"
-                                    />
-                                    <Button variant="danger" size="sm" onClick={() => handleDeleteQuestion(question.id)} disabled={isPending}><Trash2 size={14} /></Button>
-                                </div>
-                            ))}
-                            <Button variant="secondary" size="sm" onClick={() => handleAddQuestion(section.id, section.questions.length)} disabled={isPending}><Plus size={16} className="mr-1" /> Add Question</Button>
-                        </Card>
-                    ))}
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={newSectionTitle}
-                            onChange={(e) => setNewSectionTitle(e.target.value)}
-                            placeholder="New Section Title"
-                            className="flex-grow bg-slate-950/50 border border-slate-800 rounded-lg p-2 text-slate-300 focus:outline-none focus:border-cyan-500/50"
-                        />
-                        <Button onClick={handleAddSection} disabled={isPending || !newSectionTitle}><Plus size={16} className="mr-1" /> Add Section</Button>
+        <div className="space-y-8">
+            <Card className="space-y-4">
+                <div className="flex justify-between items-start">
+                    <div className="space-y-4 flex-1 mr-8">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Template Title</label>
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                onBlur={handleUpdateTemplate}
+                                className={`w-full bg-slate-800 border ${errors.title ? 'border-red-500' : 'border-slate-700'} rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                            />
+                            {errors.title && <p className="text-red-400 text-xs mt-1">{errors.title}</p>}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                onBlur={handleUpdateTemplate}
+                                className={`w-full bg-slate-800 border ${errors.description ? 'border-red-500' : 'border-slate-700'} rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                                rows={2}
+                            />
+                            {errors.description && <p className="text-red-400 text-xs mt-1">{errors.description}</p>}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        {/* Status indicator */}
+                        {isPending ? (
+                            <span className="text-sm text-cyan-400 animate-pulse">Saving...</span>
+                        ) : (
+                            <span className="text-sm text-slate-500">All changes saved</span>
+                        )}
                     </div>
                 </div>
-            )}
+            </Card>
+
+            <div className="space-y-6">
+                {template.sections.map((section) => (
+                    <Card key={section.id} className="relative group">
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="danger" size="sm" onClick={() => startTransition(() => deleteSection(template.id, section.id))}>
+                                <Trash2 size={16} />
+                            </Button>
+                        </div>
+
+                        <h3 className="text-lg font-semibold text-purple-400 mb-4 flex items-center gap-2">
+                            <GripVertical size={20} className="text-slate-600 cursor-move" />
+                            {section.title}
+                        </h3>
+
+                        <div className="space-y-3 pl-6 border-l-2 border-slate-800">
+                            {section.questions.map((question) => (
+                                <div key={question.id} className="flex items-center gap-3 group/question">
+                                    <GripVertical size={16} className="text-slate-700 cursor-move" />
+                                    <input
+                                        type="text"
+                                        defaultValue={question.text}
+                                        onBlur={(e) => startTransition(() => updateQuestionText(question.id, e.target.value))}
+                                        className="flex-1 bg-transparent border-b border-transparent hover:border-slate-700 focus:border-cyan-500 focus:outline-none py-1 text-slate-300 transition-colors"
+                                    />
+                                    <button
+                                        onClick={() => startTransition(() => deleteQuestion(template.id, question.id))}
+                                        className="text-slate-600 hover:text-red-400 opacity-0 group-hover/question:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+
+                            <Button variant="ghost" size="sm" onClick={() => handleAddQuestion(section.id)} className="mt-2">
+                                <Plus size={16} className="mr-2" />
+                                Add Question
+                            </Button>
+                        </div>
+                    </Card>
+                ))}
+
+                <Button variant="secondary" className="w-full py-8 border-dashed border-2 border-slate-700 hover:border-cyan-500/50" onClick={handleAddSection}>
+                    <Plus size={24} className="mb-2" />
+                    Add New Section
+                </Button>
+            </div>
         </div>
     );
 }
