@@ -4,9 +4,9 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import CreateReviewButton from '@/components/dashboard/CreateReviewButton';
-import PerformanceChart from '@/components/dashboard/PerformanceChart';
+import StartReviewButton from '@/components/dashboard/StartReviewButton';
 import ReviewTaskCard from '@/components/dashboard/ReviewTaskCard';
+import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import { UI_TEXT } from '@/lib/constants';
 import { ReviewTask } from '@/types';
 
@@ -35,10 +35,24 @@ export default async function DashboardPage() {
         include: { employee: true, template: true }
     });
 
-    // Fetch data for HR test button
-    const template = await prisma.formTemplate.findFirst();
-    const employee = await prisma.user.findFirst({ where: { role: 'EMPLOYEE' } });
-    const manager = await prisma.user.findFirst({ where: { role: 'MANAGER' } });
+    // Fetch data for HR modal
+    const templates = await prisma.formTemplate.findMany({ select: { id: true, title: true } });
+    const employees = await prisma.user.findMany({ where: { role: 'EMPLOYEE' }, select: { id: true, name: true, role: true } });
+    const managers = await prisma.user.findMany({ where: { role: 'MANAGER' }, select: { id: true, name: true, role: true } });
+
+    // Calculate real stats
+    const totalTeamReviews = await prisma.performanceReview.count({
+        where: { managerId: user.id }
+    });
+    const completedTeamReviews = await prisma.performanceReview.count({
+        where: { managerId: user.id, status: 'COMPLETED' }
+    });
+    const teamCompletionRate = totalTeamReviews > 0 ? Math.round((completedTeamReviews / totalTeamReviews) * 100) : 0;
+
+    // Get next scheduled review (mock logic for now, could be real field later)
+    const nextReviewDate = new Date();
+    nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+    const nextReviewString = nextReviewDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     return (
         <div className="space-y-8">
@@ -49,11 +63,11 @@ export default async function DashboardPage() {
                     </h1>
                     <p className="text-slate-400">{UI_TEXT.DASHBOARD_SUBTITLE}</p>
                 </div>
-                {user.role === 'HR' && template && employee && manager && (
-                    <CreateReviewButton
-                        templateId={template.id}
-                        employeeId={employee.id}
-                        managerId={manager.id}
+                {user.role === 'HR' && (
+                    <StartReviewButton
+                        templates={templates}
+                        employees={employees}
+                        managers={managers}
                     />
                 )}
             </div>
@@ -83,13 +97,16 @@ export default async function DashboardPage() {
                         <div className="space-y-4">
                             <div className="p-4 bg-slate-800/30 rounded-lg">
                                 <div className="text-sm text-slate-400">Next Review Cycle</div>
-                                <div className="text-lg font-medium text-white">Oct 2025</div>
+                                <div className="text-lg font-medium text-white">{nextReviewString}</div>
                             </div>
                             <div className="p-4 bg-slate-800/30 rounded-lg">
                                 <div className="text-sm text-slate-400">Team Completion</div>
-                                <div className="text-lg font-medium text-white">85%</div>
+                                <div className="text-lg font-medium text-white">{teamCompletionRate}%</div>
                                 <div className="w-full bg-slate-700 h-1.5 mt-2 rounded-full overflow-hidden">
-                                    <div className="bg-purple-500 h-full w-[85%]" />
+                                    <div
+                                        className="bg-purple-500 h-full transition-all duration-1000"
+                                        style={{ width: `${teamCompletionRate}%` }}
+                                    />
                                 </div>
                             </div>
                         </div>
