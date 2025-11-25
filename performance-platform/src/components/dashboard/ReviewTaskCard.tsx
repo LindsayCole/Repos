@@ -14,12 +14,12 @@ export default function ReviewTaskCard({ review, type }: ReviewTaskCardProps) {
     const isEmployee = type === 'employee';
 
     return (
-        <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+        <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-border shadow-sm">
             <div>
-                <h3 className="font-medium text-white">
+                <h3 className="font-medium text-foreground">
                     {isEmployee ? review.template.title : review.employee?.name}
                 </h3>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted-foreground">
                     {isEmployee ? 'Self-Evaluation Required' : `${review.template.title} - Manager Review`}
                 </p>
             </div>

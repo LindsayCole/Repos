@@ -58,10 +58,10 @@ export default async function DashboardPage() {
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold text-white mb-2">
+                    <h1 className="text-3xl font-bold text-foreground mb-1">
                         {UI_TEXT.DASHBOARD_WELCOME(user.name.split(' ')[0])}
                     </h1>
-                    <p className="text-slate-400">{UI_TEXT.DASHBOARD_SUBTITLE}</p>
+                    <p className="text-muted-foreground">{UI_TEXT.DASHBOARD_SUBTITLE}</p>
                 </div>
                 {user.role === 'HR' && (
                     <StartReviewButton
@@ -73,38 +73,42 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="md:col-span-2 space-y-6">
-                    <h2 className="text-xl font-semibold text-cyan-400">Your Tasks</h2>
+                <div className="md:col-span-2 space-y-6">
+                    <Card className="p-0 border-0 shadow-none bg-transparent">
+                        <h2 className="text-lg font-semibold text-foreground mb-4">Your Tasks</h2>
 
-                    {myReviews.length === 0 && teamReviews.length === 0 && (
-                        <div className="p-8 text-center border border-dashed border-slate-800 rounded-xl">
-                            <p className="text-slate-500">{UI_TEXT.NO_PENDING_TASKS}</p>
+                        <div className="space-y-3">
+                            {myReviews.length === 0 && teamReviews.length === 0 && (
+                                <div className="p-8 text-center border border-dashed border-border rounded-lg bg-card">
+                                    <p className="text-muted-foreground">{UI_TEXT.NO_PENDING_TASKS}</p>
+                                </div>
+                            )}
+
+                            {myReviews.map((review: ReviewTask) => (
+                                <ReviewTaskCard key={review.id} review={review} type="employee" />
+                            ))}
+
+                            {teamReviews.map((review: ReviewTask) => (
+                                <ReviewTaskCard key={review.id} review={review} type="manager" />
+                            ))}
                         </div>
-                    )}
-
-                    {myReviews.map((review: ReviewTask) => (
-                        <ReviewTaskCard key={review.id} review={review} type="employee" />
-                    ))}
-
-                    {teamReviews.map((review: ReviewTask) => (
-                        <ReviewTaskCard key={review.id} review={review} type="manager" />
-                    ))}
-                </Card>
+                    </Card>
+                </div>
 
                 <div className="space-y-6">
-                    <Card className="space-y-6">
-                        <h2 className="text-xl font-semibold text-purple-400">Quick Stats</h2>
+                    <Card>
+                        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Stats</h2>
                         <div className="space-y-4">
-                            <div className="p-4 bg-slate-800/30 rounded-lg">
-                                <div className="text-sm text-slate-400">Next Review Cycle</div>
-                                <div className="text-lg font-medium text-white">{nextReviewString}</div>
+                            <div className="p-4 bg-secondary/50 rounded-lg">
+                                <div className="text-sm text-muted-foreground">Next Review Cycle</div>
+                                <div className="text-lg font-medium text-foreground">{nextReviewString}</div>
                             </div>
-                            <div className="p-4 bg-slate-800/30 rounded-lg">
-                                <div className="text-sm text-slate-400">Team Completion</div>
-                                <div className="text-lg font-medium text-white">{teamCompletionRate}%</div>
-                                <div className="w-full bg-slate-700 h-1.5 mt-2 rounded-full overflow-hidden">
+                            <div className="p-4 bg-secondary/50 rounded-lg">
+                                <div className="text-sm text-muted-foreground">Team Completion</div>
+                                <div className="text-lg font-medium text-foreground">{teamCompletionRate}%</div>
+                                <div className="w-full bg-secondary h-1.5 mt-2 rounded-full overflow-hidden">
                                     <div
-                                        className="bg-purple-500 h-full transition-all duration-1000"
+                                        className="bg-primary h-full transition-all duration-1000"
                                         style={{ width: `${teamCompletionRate}%` }}
                                     />
                                 </div>

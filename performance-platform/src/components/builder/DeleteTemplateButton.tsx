@@ -36,7 +36,7 @@ export default function DeleteTemplateButton({ templateId, reviewCount }: { temp
 
     return (
         <Button
-            variant="danger"
+            variant="destructive"
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting || reviewCount > 0}

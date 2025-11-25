@@ -17,9 +17,9 @@ interface PerformanceChartProps {
 
 export default function PerformanceChart({ userId, metrics }: PerformanceChartProps) {
     const [data, setData] = useState<MetricData[]>(metrics || [
-        { label: 'Behaviour', value: 0, color: 'bg-cyan-500' },
-        { label: 'Results', value: 0, color: 'bg-purple-500' },
-        { label: 'Overall', value: 0, color: 'bg-green-500' },
+        { label: 'Behaviour', value: 0, color: 'bg-primary' },
+        { label: 'Results', value: 0, color: 'bg-slate-500' },
+        { label: 'Overall', value: 0, color: 'bg-slate-900 dark:bg-slate-100' },
     ]);
 
     useEffect(() => {
@@ -33,9 +33,9 @@ export default function PerformanceChart({ userId, metrics }: PerformanceChartPr
                 .catch(() => {
                     // Fallback to demo data
                     setData([
-                        { label: 'Behaviour', value: 3.2, color: 'bg-cyan-500' },
-                        { label: 'Results', value: 3.5, color: 'bg-purple-500' },
-                        { label: 'Overall', value: 3.35, color: 'bg-green-500' },
+                        { label: 'Behaviour', value: 3.2, color: 'bg-primary' },
+                        { label: 'Results', value: 3.5, color: 'bg-slate-500' },
+                        { label: 'Overall', value: 3.35, color: 'bg-slate-900 dark:bg-slate-100' },
                     ]);
                 });
         }
@@ -45,15 +45,15 @@ export default function PerformanceChart({ userId, metrics }: PerformanceChartPr
 
     return (
         <Card>
-            <h2 className="text-xl font-semibold text-purple-400 mb-6">Performance Overview</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-6">Performance Overview</h2>
             <div className="space-y-4">
                 {data.map((metric, index) => (
                     <div key={metric.label}>
                         <div className="flex justify-between text-sm mb-2">
-                            <span className="text-slate-300">{metric.label}</span>
-                            <span className="text-white font-semibold">{metric.value.toFixed(1)} / {maxValue}</span>
+                            <span className="text-muted-foreground">{metric.label}</span>
+                            <span className="text-foreground font-semibold">{metric.value.toFixed(1)} / {maxValue}</span>
                         </div>
-                        <div className="w-full bg-slate-800/50 h-3 rounded-full overflow-hidden">
+                        <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
                             <motion.div
                                 className={`${metric.color} h-full rounded-full`}
                                 initial={{ width: 0 }}
